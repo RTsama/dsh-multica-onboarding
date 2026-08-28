@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "lib/types",
+    "types": ["node"]
+  },
+  "include": [
+    "src/index.ts",
+    "src/contracts.ts",
+    "src/host/**/*.ts"
+  ],
+  "exclude": ["tests", "src/client"]
+}
