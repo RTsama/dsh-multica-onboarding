@@ -67,7 +67,7 @@ describe('HTTP handlers', () => {
     const invalid = await fetch(`${base}/configure`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-dsh-multica-csrf': 'csrf-test-token' },
-      body: JSON.stringify({ apiUrl: 'file:///etc/passwd', token: 'mul_12345678', startDaemon: true }),
+      body: JSON.stringify({ serverUrl: 'file:///etc/passwd', appUrl: 'https://example.com', workspace: 'team', token: 'mul_12345678', startDaemon: true }),
     })
     expect(invalid.status).toBe(400)
     const oversized = await fetch(`${base}/configure`, {
@@ -86,11 +86,17 @@ describe('HTTP handlers', () => {
     const response = await fetch(`${base}/configure`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-dsh-multica-csrf': 'csrf-test-token' },
-      body: JSON.stringify({ apiUrl: 'https://example.com/', token, startDaemon: true }),
+      body: JSON.stringify({ serverUrl: 'https://api.example.com/', appUrl: 'https://app.example.com/', workspace: 'team', token, startDaemon: true }),
     })
     const body = JSON.stringify(await response.json())
     expect(response.status).toBe(200)
-    expect(service.configure).toHaveBeenCalledWith({ apiUrl: 'https://example.com', token, startDaemon: true })
+    expect(service.configure).toHaveBeenCalledWith({
+      serverUrl: 'https://api.example.com',
+      appUrl: 'https://app.example.com',
+      workspace: 'team',
+      token,
+      startDaemon: true,
+    })
     expect(body).not.toContain(token)
   })
 })

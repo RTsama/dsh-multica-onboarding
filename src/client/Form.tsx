@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
-import { DEFAULT_API_URL, type ConfigureRequest, type MulticaStatus } from '../contracts.js'
+import { DEFAULT_APP_URL, DEFAULT_SERVER_URL, type ConfigureRequest, type MulticaStatus } from '../contracts.js'
 
 interface FormProps {
   status: MulticaStatus | undefined
@@ -34,22 +34,30 @@ export function StatusGrid({ status }: { status: MulticaStatus | undefined }): R
 }
 
 export function MulticaForm(props: FormProps): ReactNode {
-  const apiUrlId = useId()
-  const apiUrlHintId = useId()
+  const serverUrlId = useId()
+  const serverUrlHintId = useId()
+  const appUrlId = useId()
+  const appUrlHintId = useId()
+  const workspaceId = useId()
+  const workspaceHintId = useId()
   const tokenId = useId()
   const tokenHintId = useId()
   const daemonId = useId()
-  const [apiUrl, setApiUrl] = useState(props.status?.apiUrl ?? DEFAULT_API_URL)
+  const [serverUrl, setServerUrl] = useState(props.status?.serverUrl ?? DEFAULT_SERVER_URL)
+  const [appUrl, setAppUrl] = useState(props.status?.appUrl ?? DEFAULT_APP_URL)
+  const [workspace, setWorkspace] = useState(props.status?.workspace ?? '')
   const [token, setToken] = useState('')
   const [startDaemon, setStartDaemon] = useState(true)
 
   useEffect(() => {
-    if (props.status?.apiUrl !== undefined) setApiUrl(props.status.apiUrl)
-  }, [props.status?.apiUrl])
+    if (props.status?.serverUrl !== undefined) setServerUrl(props.status.serverUrl)
+    if (props.status?.appUrl !== undefined) setAppUrl(props.status.appUrl)
+    if (props.status?.workspace !== undefined) setWorkspace(props.status.workspace)
+  }, [props.status?.appUrl, props.status?.serverUrl, props.status?.workspace])
 
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault()
-    await props.onSubmit({ apiUrl, token, startDaemon })
+    await props.onSubmit({ serverUrl, appUrl, workspace, token, startDaemon })
     // Do not retain a credential in component state after any submit attempt.
     setToken('')
   }
@@ -58,20 +66,52 @@ export function MulticaForm(props: FormProps): ReactNode {
     <form className="multica-form" onSubmit={(event) => { void submit(event) }}>
       <StatusGrid status={props.status} />
       <div className="multica-field">
-        <label className="multica-field__label" htmlFor={apiUrlId}>API URL</label>
+        <label className="multica-field__label" htmlFor={serverUrlId}>Server URL</label>
         <input
-          id={apiUrlId}
-          aria-describedby={apiUrlHintId}
+          id={serverUrlId}
+          aria-describedby={serverUrlHintId}
           className="multica-input"
           type="url"
           inputMode="url"
           autoComplete="url"
           required
           disabled={props.saving}
-          value={apiUrl}
-          onChange={(event) => { setApiUrl(event.target.value); props.onChanged() }}
+          value={serverUrl}
+          onChange={(event) => { setServerUrl(event.target.value); props.onChanged() }}
         />
-        <span className="multica-field__hint" id={apiUrlHintId}>Nevis 内部环境默认使用上面的地址。</span>
+        <span className="multica-field__hint" id={serverUrlHintId}>Multica API 服务地址；Nevis 内部环境默认使用上面的地址，也可以覆盖。</span>
+      </div>
+      <div className="multica-field">
+        <label className="multica-field__label" htmlFor={workspaceId}>默认 Workspace</label>
+        <input
+          id={workspaceId}
+          aria-describedby={workspaceHintId}
+          className="multica-input"
+          type="text"
+          autoComplete="off"
+          spellCheck={false}
+          disabled={props.saving}
+          value={workspace}
+          placeholder="Workspace ID 或 slug"
+          onChange={(event) => { setWorkspace(event.target.value); props.onChanged() }}
+        />
+        <span className="multica-field__hint" id={workspaceHintId}>已有默认值时可留空；账号只有一个 workspace 时会自动选择。</span>
+      </div>
+      <div className="multica-field">
+        <label className="multica-field__label" htmlFor={appUrlId}>App URL</label>
+        <input
+          id={appUrlId}
+          aria-describedby={appUrlHintId}
+          className="multica-input"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+          required
+          disabled={props.saving}
+          value={appUrl}
+          onChange={(event) => { setAppUrl(event.target.value); props.onChanged() }}
+        />
+        <span className="multica-field__hint" id={appUrlHintId}>浏览器入口地址；默认与 Server URL 相同，也可以单独覆盖。</span>
       </div>
       <div className="multica-field">
         <label className="multica-field__label" htmlFor={tokenId}>访问 Token</label>
@@ -98,7 +138,7 @@ export function MulticaForm(props: FormProps): ReactNode {
           disabled={props.saving}
           onChange={(event) => { setStartDaemon(event.target.checked); props.onChanged() }}
         />
-        <span>登录后启动 Multica daemon</span>
+        <span>保存后启动或热重启 Multica daemon，并在容器重启后自动恢复</span>
       </label>
       {props.error !== undefined && <div className="multica-alert multica-alert--error" role="alert">{props.error}</div>}
       {props.success !== undefined && <div className="multica-alert multica-alert--success" role="status">{props.success}</div>}

@@ -7,7 +7,7 @@ export function MulticaSettings(): ReactNode {
   return (
     <section className="multica-settings" aria-labelledby="multica-settings-title">
       <h2 id="multica-settings-title">Multica</h2>
-      <p className="multica-settings__lead">查看连接状态，或使用新的 API URL 和 token 重新登录。</p>
+      <p className="multica-settings__lead">查看连接状态，或使用新的 Server URL、App URL 和 token 重新登录；保存后会热重启 daemon。</p>
       <div className="multica-card">
         {state.loading
           ? <div className="multica-loading">正在读取 Multica 状态…</div>

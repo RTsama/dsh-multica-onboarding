@@ -1,6 +1,7 @@
 export const STATUS_PATH = '/api/dsh-multica/status'
 export const CONFIGURE_PATH = '/api/dsh-multica/configure'
-export const DEFAULT_API_URL = 'https://multica.nevis.sina.com.cn'
+export const DEFAULT_SERVER_URL = 'https://multica.nevis.sina.com.cn'
+export const DEFAULT_APP_URL = 'https://multica.nevis.sina.com.cn'
 
 export type DaemonState = 'running' | 'stopped' | 'unknown'
 
@@ -10,14 +11,18 @@ export interface MulticaStatus {
   cliInstalled: boolean
   cliVersion?: string
   configured: boolean
-  apiUrl?: string
+  serverUrl?: string
+  appUrl?: string
+  workspace?: string
   authenticated: boolean
   daemon: DaemonState
   runtimeReady: boolean
 }
 
 export interface ConfigureRequest {
-  apiUrl: string
+  serverUrl: string
+  appUrl: string
+  workspace: string
   token: string
   startDaemon: boolean
 }

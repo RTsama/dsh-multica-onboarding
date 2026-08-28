@@ -11,7 +11,7 @@ describe('MulticaService', () => {
     const run = vi.fn(async (spec: CommandSpec) => {
       const command = [spec.executable, ...spec.args].join(' ')
       if (command.endsWith('multica version')) return result('multica 0.4.34\nos/arch: linux/amd64\n')
-      if (command.includes('config show')) return result('server_url: https://multica.nevis.sina.com.cn\n')
+      if (command.includes('config show')) return result('server_url: https://multica.nevis.sina.com.cn\napp_url: https://multica.nevis.sina.com.cn\nworkspace_id: nevis-team\n')
       if (command.includes('auth status')) return result('Authenticated as employee\n')
       if (command.includes('daemon status')) return result('{"status":"running"}\n')
       if (command.includes('--probe')) return result('{"v":1,"type":"probe","runtime":"dsh","protocol_version":1}\n')
@@ -24,7 +24,9 @@ describe('MulticaService', () => {
       cliInstalled: true,
       cliVersion: '0.4.34',
       configured: true,
-      apiUrl: 'https://multica.nevis.sina.com.cn',
+      serverUrl: 'https://multica.nevis.sina.com.cn',
+      appUrl: 'https://multica.nevis.sina.com.cn',
+      workspace: 'nevis-team',
       authenticated: true,
       daemon: 'running',
       runtimeReady: true,
@@ -41,8 +43,11 @@ describe('MulticaService', () => {
       if (spec.args.includes('--probe')) return result('{"v":1,"type":"probe","runtime":"dsh","protocol_version":1}')
       return result('ok')
     })
-    const configured = await new MulticaService(run).configure({
-      apiUrl: 'https://multica.nevis.sina.com.cn',
+    const setDaemonIntent = vi.fn()
+    const configured = await new MulticaService(run, setDaemonIntent).configure({
+      serverUrl: 'https://multica.nevis.sina.com.cn',
+      appUrl: 'https://app.nevis.sina.com.cn',
+      workspace: 'nevis-team',
       token,
       startDaemon: true,
     })
@@ -54,7 +59,10 @@ describe('MulticaService', () => {
       stdin: `${token}\n`,
     })
     expect(seen.flatMap(spec => spec.args)).not.toContain(token)
-    expect(seen.some(spec => spec.args.join(' ') === 'daemon start')).toBe(true)
+    expect(seen.some(spec => spec.args.join(' ') === 'daemon start --no-auto-update --no-auto-reload')).toBe(true)
+    expect(setDaemonIntent).toHaveBeenCalledWith(true)
+    expect(seen).toContainEqual(expect.objectContaining({ args: ['config', 'set', 'app_url', 'https://app.nevis.sina.com.cn'] }))
+    expect(seen).toContainEqual(expect.objectContaining({ args: ['workspace', 'switch', 'nevis-team'] }))
     expect(seen.some(spec => spec.executable === DSH_BIN && spec.args.includes('--probe'))).toBe(true)
     expect(configured).toEqual({
       ok: true,
@@ -70,20 +78,46 @@ describe('MulticaService', () => {
     const run = vi.fn(async (spec: CommandSpec) => {
       seen.push(spec)
       if (spec.args.includes('--probe')) return result('', 1)
+      if (spec.args[0] === 'daemon' && spec.args[1] === 'status') return result('{"status":"stopped"}')
       return result('ok')
     })
-    const configured = await new MulticaService(run).configure({
-      apiUrl: 'https://example.com', token: 'mul_12345678', startDaemon: false,
+    const setDaemonIntent = vi.fn()
+    const configured = await new MulticaService(run, setDaemonIntent).configure({
+      serverUrl: 'https://example.com', appUrl: 'https://app.example.com', workspace: 'team', token: 'mul_12345678', startDaemon: false,
     })
-    expect(seen.some(spec => spec.args.includes('daemon'))).toBe(false)
+    expect(seen.some(spec => spec.args[0] === 'daemon' && (spec.args[1] === 'start' || spec.args[1] === 'stop'))).toBe(false)
     expect(configured.daemon).toBe('stopped')
     expect(configured.runtimeReady).toBe(false)
+    expect(setDaemonIntent).toHaveBeenCalledWith(false)
+  })
+
+  it('hot-restarts a running daemon after saving both URLs', async () => {
+    const seen: CommandSpec[] = []
+    const run = vi.fn(async (spec: CommandSpec) => {
+      seen.push(spec)
+      if (spec.args.includes('--probe')) return result('{"v":1,"type":"probe","runtime":"dsh","protocol_version":1}')
+      if (spec.args[0] === 'daemon' && spec.args[1] === 'status') return result('{"status":"running"}')
+      return result('ok')
+    })
+
+    await new MulticaService(run, vi.fn()).configure({
+      serverUrl: 'https://api.example.com',
+      appUrl: 'https://app.example.com',
+      workspace: 'team',
+      token: 'mul_12345678',
+      startDaemon: true,
+    })
+
+    const stop = seen.findIndex(spec => spec.args.join(' ') === 'daemon stop')
+    const start = seen.findIndex(spec => spec.args.join(' ') === 'daemon start --no-auto-update --no-auto-reload')
+    expect(stop).toBeGreaterThan(-1)
+    expect(start).toBeGreaterThan(stop)
   })
 
   it('returns a safe login error without CLI stderr', async () => {
     const run = vi.fn(async () => result('token=mul_leaked', 1))
-    await expect(new MulticaService(run).configure({
-      apiUrl: 'https://example.com', token: 'mul_12345678', startDaemon: false,
-    })).rejects.toMatchObject({ code: 'login_failed', message: 'Multica 登录失败，请检查 API URL 和 token' })
+    await expect(new MulticaService(run, vi.fn()).configure({
+      serverUrl: 'https://example.com', appUrl: 'https://app.example.com', workspace: 'team', token: 'mul_12345678', startDaemon: false,
+    })).rejects.toMatchObject({ code: 'login_failed', message: 'Multica 登录失败，请检查 Server URL 和 token' })
   })
 })

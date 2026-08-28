@@ -4,11 +4,22 @@ const MAX_TOKEN_LENGTH = 4096
 
 export class InputError extends Error {
   constructor(
-    readonly code: 'invalid_json' | 'invalid_api_url' | 'invalid_token' | 'invalid_start_daemon',
+    readonly code: 'invalid_json' | 'invalid_api_url' | 'invalid_workspace' | 'invalid_token' | 'invalid_start_daemon',
     message: string,
   ) {
     super(message)
   }
+}
+
+export function normalizeWorkspace(input: unknown): string {
+  if (typeof input !== 'string') {
+    throw new InputError('invalid_workspace', 'Workspace 必须是 ID 或 slug')
+  }
+  const value = input.trim()
+  if (value !== '' && !/^[A-Za-z0-9._-]{1,128}$/u.test(value)) {
+    throw new InputError('invalid_workspace', 'Workspace 仅支持 ID、UUID 前缀或 slug')
+  }
+  return value
 }
 
 export function normalizeApiUrl(input: unknown): string {
@@ -58,7 +69,9 @@ export function parseConfigureRequest(input: unknown): ConfigureRequest {
     throw new InputError('invalid_start_daemon', 'startDaemon 必须是布尔值')
   }
   return {
-    apiUrl: normalizeApiUrl(body.apiUrl),
+    serverUrl: normalizeApiUrl(body.serverUrl),
+    appUrl: normalizeApiUrl(body.appUrl),
+    workspace: normalizeWorkspace(body.workspace),
     token: validateToken(body.token),
     startDaemon: body.startDaemon,
   }

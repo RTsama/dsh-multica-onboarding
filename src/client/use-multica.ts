@@ -52,7 +52,9 @@ export function useMultica(): MulticaState {
       setStatus({
         ...status,
         configured: true,
-        apiUrl: request.apiUrl,
+        serverUrl: request.serverUrl,
+        appUrl: request.appUrl,
+        workspace: request.workspace,
         authenticated: true,
         daemon: result.daemon,
         runtimeReady: result.runtimeReady,

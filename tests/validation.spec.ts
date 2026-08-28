@@ -26,11 +26,19 @@ describe('configuration validation', () => {
   })
 
   it('requires an explicit daemon choice', () => {
-    expect(() => parseConfigureRequest({ apiUrl: 'https://example.com', token: 'mul_12345678' })).toThrow()
+    expect(() => parseConfigureRequest({ serverUrl: 'https://example.com', appUrl: 'https://app.example.com', workspace: '', token: 'mul_12345678' })).toThrow()
     expect(parseConfigureRequest({
-      apiUrl: 'https://example.com',
+      serverUrl: 'https://example.com',
+      appUrl: 'https://app.example.com',
+      workspace: 'team',
       token: 'mul_12345678',
       startDaemon: false,
-    })).toEqual({ apiUrl: 'https://example.com', token: 'mul_12345678', startDaemon: false })
+    })).toEqual({
+      serverUrl: 'https://example.com',
+      appUrl: 'https://app.example.com',
+      workspace: 'team',
+      token: 'mul_12345678',
+      startDaemon: false,
+    })
   })
 })

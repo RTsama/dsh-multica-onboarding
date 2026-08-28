@@ -1,6 +1,6 @@
 # dsh-multica-onboarding
 
-DSH 的 Multica 首次引导和设置插件。它在 Web UI 中引导用户输入 Multica API URL 和个人 token，调用镜像内的 `multica` CLI 完成登录，并可选择启动 daemon。
+DSH 的 Multica 首次引导和设置插件。它在 Web UI 中引导用户输入 Multica Server URL、App URL、默认 workspace 和个人 token，调用镜像内的 `multica` CLI 完成登录，并可选择启动或热重启 daemon。
 
 ## 兼容基线
 
@@ -8,7 +8,8 @@ DSH 的 Multica 首次引导和设置插件。它在 Web UI 中引导用户输�
 - Multica CLI：`0.4.34`
 - Node.js：24
 - 运行平台：64 位 Linux x86（`linux/amd64`）
-- 默认 API URL：`https://multica.nevis.sina.com.cn`
+- 默认 Server URL：`https://multica.nevis.sina.com.cn`（可编辑）
+- 默认 App URL：`https://multica.nevis.sina.com.cn`（可编辑）
 
 插件同时注册两个 DSH UI 插槽：
 
@@ -25,7 +26,7 @@ Host 端注册：
 浏览器不会把 token 写入 localStorage、sessionStorage、URL 或 DSH 设置。每次提交结束后，表单都会清空 token。Host 使用固定路径 `/usr/local/bin/multica`，通过无 shell 的子进程调用：
 
 ```text
-multica --server-url <API_URL> login --token
+multica --server-url <SERVER_URL> login --token
 ```
 
 token 只写入该进程的 stdin，不会进入 argv、日志或 HTTP 响应。登录后的凭据持久化由 Multica CLI 自己管理。
@@ -35,7 +36,8 @@ HTTP 接口还包含以下限制：
 - POST 只接受 `application/json`，请求体最大 32 KiB。
 - status 生成并返回进程级 CSRF token；configure 必须通过 `x-dsh-multica-csrf` 原样提交。
 - 不启用 CORS，所有响应均为 `Cache-Control: no-store`。
-- API URL 只接受 HTTP(S)，拒绝嵌入凭据、query 和 fragment。
+- Server/App URL 只接受 HTTP(S)，拒绝嵌入凭据、query 和 fragment。
+- Workspace 只接受 ID、UUID 前缀或 slug；已有默认值时保留，只有一个候选时自动选择。
 - token 只接受 `mul_...` 或 `mcn_...`，拒绝空白和控制字符。
 - CLI 原始 stdout/stderr 不会传给浏览器。
 
@@ -44,14 +46,16 @@ HTTP 接口还包含以下限制：
 configure 端点依次执行：
 
 ```text
-multica --server-url <URL> login --token  # token 走 stdin
-multica config set server_url <URL>
-multica config set app_url <URL>
-multica daemon start                       # 用户勾选时；已运行则跳过
-dsh --profile multica --probe              # 只用于显示 runtime 状态
+multica --server-url <SERVER_URL> login --token  # token 走 stdin
+multica config set server_url <SERVER_URL>
+multica config set app_url <APP_URL>
+multica workspace switch <ID_OR_SLUG>           # 已有默认值时保留；单候选时自动选择
+dsh --profile multica --probe
+multica daemon stop                              # 旧 daemon 运行时
+multica daemon start --no-auto-update --no-auto-reload
 ```
 
-本插件只负责 UI 登录流程。目标镜像仍需预装 `multica` CLI 和独立的 `multica` DSH profile（由 `dsh-multica-bridge` 提供）。
+勾选 daemon 后还会在持久化的 `~/.multica/nevis-daemon-enabled` 写入恢复标记。目标镜像中的生命周期守护程序只在 URL、认证、workspace、DSH profile 和该标记全部就绪时恢复 daemon。插件仍要求镜像预装 `multica` CLI 和独立的 `multica` DSH profile（由 `dsh-multica-bridge` 提供）。
 
 ## 开发与验收
 
