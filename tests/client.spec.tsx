@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MulticaStatus } from '../src/contracts.js'
 import { MulticaOnboarding } from '../src/client/Onboarding.js'
 import { MulticaSettings } from '../src/client/Settings.js'
+import { styles } from '../src/client/styles.js'
 
 const mocks = vi.hoisted(() => ({
   getStatus: vi.fn(),
@@ -39,6 +40,13 @@ beforeEach(() => {
 afterEach(() => { cleanup() })
 
 describe('Multica client UI', () => {
+  it('uses DSH light/dark primary button tokens instead of a fixed foreground color', () => {
+    expect(styles).toContain('var(--dsw-alias-button-primary-fill')
+    expect(styles).toContain('var(--dsw-alias-label-primary-foreground')
+    expect(styles).toContain('var(--dsw-alias-button-primary-hover')
+    expect(styles).not.toContain('background:var(--dsw-alias-brand-primary,#3977f6);color:#fff')
+  })
+
   it('shows independent Nevis defaults and the official cloud URL hints on first run', async () => {
     mocks.getStatus.mockResolvedValue(status())
     render(<MulticaOnboarding stepId="multica" complete={vi.fn()} openSection={vi.fn()} />, {

@@ -22,7 +22,8 @@ export const styles = String.raw`
 .multica-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:2px}
 .multica-button{min-height:38px;border:1px solid transparent;border-radius:9px;padding:0 16px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 .multica-button:disabled{cursor:wait;opacity:.62}
-.multica-button--primary{background:var(--dsw-alias-brand-primary,#3977f6);color:#fff}
+.multica-button--primary{background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary,#3977f6));color:var(--dsw-alias-label-primary-foreground,#fff)}
+.multica-button--primary:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary,#3977f6)))}
 .multica-button--secondary{border-color:var(--dsw-alias-border-default,rgba(127,127,127,.42));background:transparent;color:inherit}
 .multica-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 20px}
 .multica-status__item{display:flex;align-items:center;gap:8px;min-width:0;color:var(--dsw-alias-label-secondary,#555);font-size:13px}
