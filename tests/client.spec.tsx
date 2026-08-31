@@ -39,6 +39,28 @@ beforeEach(() => {
 afterEach(() => { cleanup() })
 
 describe('Multica client UI', () => {
+  it('shows independent Nevis defaults and the official cloud URL hints on first run', async () => {
+    mocks.getStatus.mockResolvedValue(status())
+    render(<MulticaOnboarding stepId="multica" complete={vi.fn()} openSection={vi.fn()} />, {
+      container: document.getElementById('test-host')!,
+    })
+
+    const serverUrl = await screen.findByLabelText('Server URL')
+    const appUrl = screen.getByLabelText('App URL')
+    expect((serverUrl as HTMLInputElement).value).toBe('https://multica.nevis.sina.com.cn')
+    expect((appUrl as HTMLInputElement).value).toBe('https://multica.nevis.sina.com.cn')
+    expect(screen.getByText(/官方云服务默认：https:\/\/api\.multica\.ai；Nevis/u)).toBeTruthy()
+    expect(screen.getByText(/官方云服务默认：https:\/\/multica\.ai；Nevis/u)).toBeTruthy()
+
+    fireEvent.change(serverUrl, { target: { value: 'https://server.example.internal' } })
+    expect((serverUrl as HTMLInputElement).value).toBe('https://server.example.internal')
+    expect((appUrl as HTMLInputElement).value).toBe('https://multica.nevis.sina.com.cn')
+
+    fireEvent.change(appUrl, { target: { value: 'https://app.example.internal' } })
+    expect((serverUrl as HTMLInputElement).value).toBe('https://server.example.internal')
+    expect((appUrl as HTMLInputElement).value).toBe('https://app.example.internal')
+  })
+
   it('automatically completes onboarding when Multica is already authenticated', async () => {
     mocks.getStatus.mockResolvedValue(status({ configured: true, authenticated: true }))
     const complete = vi.fn()
@@ -69,6 +91,9 @@ describe('Multica client UI', () => {
       token: 'mul_secret-value',
       startDaemon: true,
     }, 'csrf-ui')
+    const submitted = mocks.configure.mock.calls[0]?.[0]
+    expect(submitted?.serverUrl).not.toMatch(/[，。；：！？、]/u)
+    expect(submitted?.appUrl).not.toMatch(/[，。；：！？、]/u)
     expect(screen.queryByLabelText('访问 Token')).toBeNull()
   })
 
@@ -91,7 +116,7 @@ describe('Multica client UI', () => {
     expect((token as HTMLInputElement).value).toBe('')
   })
 
-  it('allows reconfiguration from the settings section without refilling a token', async () => {
+  it('prefers saved URLs and allows independent reconfiguration without refilling a token', async () => {
     mocks.getStatus.mockResolvedValue(status({
       configured: true,
       authenticated: true,
@@ -111,7 +136,9 @@ describe('Multica client UI', () => {
     expect((appUrl as HTMLInputElement).value).toBe('https://old-app.example.internal')
     expect((token as HTMLInputElement).value).toBe('')
     fireEvent.change(serverUrl, { target: { value: 'https://new-api.example.internal' } })
+    expect((appUrl as HTMLInputElement).value).toBe('https://old-app.example.internal')
     fireEvent.change(appUrl, { target: { value: 'https://new-app.example.internal' } })
+    expect((serverUrl as HTMLInputElement).value).toBe('https://new-api.example.internal')
     fireEvent.change(token, { target: { value: 'mcn_new-secret' } })
     fireEvent.click(screen.getByRole('button', { name: '保存配置' }))
     await screen.findByRole('status')

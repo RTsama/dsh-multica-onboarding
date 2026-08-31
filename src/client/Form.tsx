@@ -79,7 +79,23 @@ export function MulticaForm(props: FormProps): ReactNode {
           value={serverUrl}
           onChange={(event) => { setServerUrl(event.target.value); props.onChanged() }}
         />
-        <span className="multica-field__hint" id={serverUrlHintId}>Multica API 服务地址；Nevis 内部环境默认使用上面的地址，也可以覆盖。</span>
+        <span className="multica-field__hint" id={serverUrlHintId}>Multica API 服务地址。官方云服务默认：https://api.multica.ai；Nevis 内部环境默认使用上方地址，可编辑覆盖。</span>
+      </div>
+      <div className="multica-field">
+        <label className="multica-field__label" htmlFor={appUrlId}>App URL</label>
+        <input
+          id={appUrlId}
+          aria-describedby={appUrlHintId}
+          className="multica-input"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+          required
+          disabled={props.saving}
+          value={appUrl}
+          onChange={(event) => { setAppUrl(event.target.value); props.onChanged() }}
+        />
+        <span className="multica-field__hint" id={appUrlHintId}>Multica Web 访问地址。官方云服务默认：https://multica.ai；Nevis 内部环境默认使用上方地址，可编辑覆盖。</span>
       </div>
       <div className="multica-field">
         <label className="multica-field__label" htmlFor={workspaceId}>默认 Workspace</label>
@@ -96,22 +112,6 @@ export function MulticaForm(props: FormProps): ReactNode {
           onChange={(event) => { setWorkspace(event.target.value); props.onChanged() }}
         />
         <span className="multica-field__hint" id={workspaceHintId}>已有默认值时可留空；账号只有一个 workspace 时会自动选择。</span>
-      </div>
-      <div className="multica-field">
-        <label className="multica-field__label" htmlFor={appUrlId}>App URL</label>
-        <input
-          id={appUrlId}
-          aria-describedby={appUrlHintId}
-          className="multica-input"
-          type="url"
-          inputMode="url"
-          autoComplete="url"
-          required
-          disabled={props.saving}
-          value={appUrl}
-          onChange={(event) => { setAppUrl(event.target.value); props.onChanged() }}
-        />
-        <span className="multica-field__hint" id={appUrlHintId}>浏览器入口地址；默认与 Server URL 相同，也可以单独覆盖。</span>
       </div>
       <div className="multica-field">
         <label className="multica-field__label" htmlFor={tokenId}>访问 Token</label>

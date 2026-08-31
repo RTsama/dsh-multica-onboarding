@@ -10,6 +10,10 @@ DSH 的 Multica 首次引导和设置插件。它在 Web UI 中引导用户输�
 - 运行平台：64 位 Linux x86（`linux/amd64`）
 - 默认 Server URL：`https://multica.nevis.sina.com.cn`（可编辑）
 - 默认 App URL：`https://multica.nevis.sina.com.cn`（可编辑）
+- Server URL 官方云服务地址：`https://api.multica.ai`
+- App URL 官方云服务地址：`https://multica.ai`
+
+首次配置时，两个输入框的实际值使用 Nevis 默认地址；如果 CLI 已保存配置，界面分别显示已保存的 Server URL 和 App URL，不会用默认值覆盖，也不会在编辑其中一个字段时联动修改另一个字段。
 
 插件同时注册两个 DSH UI 插槽：
 
