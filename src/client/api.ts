@@ -1,8 +1,10 @@
 import {
   CONFIGURE_PATH,
+  DISMISS_ONBOARDING_PATH,
   STATUS_PATH,
   type ConfigureRequest,
   type ConfigureResult,
+  type DismissOnboardingResult,
   type ErrorResponse,
   type MulticaStatus,
 } from '../contracts.js'
@@ -11,6 +13,22 @@ export class ApiError extends Error {
   constructor(readonly code: string, message: string) {
     super(message)
   }
+}
+
+export async function dismissOnboarding(
+  csrfToken: string,
+  signal?: AbortSignal,
+): Promise<DismissOnboardingResult> {
+  return decode(await fetch(DISMISS_ONBOARDING_PATH, {
+    method: 'POST',
+    cache: 'no-store',
+    credentials: 'same-origin',
+    headers: {
+      accept: 'application/json',
+      'x-dsh-multica-csrf': csrfToken,
+    },
+    signal: signal ?? null,
+  }))
 }
 
 async function decode<T>(response: Response): Promise<T> {

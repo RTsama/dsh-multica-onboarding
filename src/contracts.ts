@@ -1,5 +1,6 @@
 export const STATUS_PATH = '/api/dsh-multica/status'
 export const CONFIGURE_PATH = '/api/dsh-multica/configure'
+export const DISMISS_ONBOARDING_PATH = '/api/dsh-multica/onboarding/dismiss'
 export const DEFAULT_SERVER_URL = 'https://multica.nevis.sina.com.cn'
 export const DEFAULT_APP_URL = 'https://multica.nevis.sina.com.cn'
 
@@ -11,6 +12,7 @@ export interface MulticaStatus {
   cliInstalled: boolean
   cliVersion?: string
   configured: boolean
+  onboardingDismissed: boolean
   serverUrl?: string
   appUrl?: string
   workspace?: string
@@ -33,6 +35,11 @@ export interface ConfigureResult {
   authenticated: true
   daemon: DaemonState
   runtimeReady: boolean
+}
+
+export interface DismissOnboardingResult {
+  ok: true
+  onboardingDismissed: true
 }
 
 export interface ErrorResponse {

@@ -1,6 +1,6 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import type { ConfigureRequest, ConfigureResult, DaemonState, MulticaStatus } from '../contracts.js'
+import type { ConfigureRequest, ConfigureResult, DaemonState, DismissOnboardingResult, MulticaStatus } from '../contracts.js'
 import { CommandError, runCommand, type CommandResult, type CommandSpec } from './cli.js'
 
 export const MULTICA_BIN = '/usr/local/bin/multica'
@@ -10,12 +10,24 @@ export const DAEMON_ENABLED_MARKER = join(
   '.multica',
   'nevis-daemon-enabled',
 )
+export const ONBOARDING_STATE_FILE = join(
+  process.env.HOME ?? '/home/node',
+  '.multica',
+  'nevis-dsh-onboarding.json',
+)
+
+const ONBOARDING_STATE_VERSION = 1
+
+export interface OnboardingStateStore {
+  isDismissed(): boolean
+  dismiss(): void
+}
 
 export type CommandRunner = (spec: CommandSpec) => Promise<CommandResult>
 
 export class ServiceError extends Error {
   constructor(
-    readonly code: 'cli_missing' | 'cli_timeout' | 'login_failed' | 'configure_failed' | 'daemon_failed',
+    readonly code: 'cli_missing' | 'cli_timeout' | 'login_failed' | 'configure_failed' | 'daemon_failed' | 'onboarding_failed',
     message: string,
   ) {
     super(message)
@@ -110,6 +122,32 @@ function persistDaemonIntent(enabled: boolean): void {
   rmSync(DAEMON_ENABLED_MARKER, { force: true })
 }
 
+function onboardingStateStore(path = ONBOARDING_STATE_FILE): OnboardingStateStore {
+  return {
+    isDismissed(): boolean {
+      try {
+        const parsed = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
+        return parsed.version === ONBOARDING_STATE_VERSION && typeof parsed.dismissedAt === 'string'
+      } catch {
+        return false
+      }
+    },
+    dismiss(): void {
+      mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
+      const temporary = `${path}.${process.pid}.${Date.now()}.tmp`
+      try {
+        writeFileSync(temporary, `${JSON.stringify({
+          version: ONBOARDING_STATE_VERSION,
+          dismissedAt: new Date().toISOString(),
+        })}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 })
+        renameSync(temporary, path)
+      } finally {
+        rmSync(temporary, { force: true })
+      }
+    },
+  }
+}
+
 async function safeRun(run: CommandRunner, spec: CommandSpec): Promise<CommandResult | undefined> {
   try {
     return await run(spec)
@@ -122,6 +160,7 @@ export class MulticaService {
   constructor(
     private readonly run: CommandRunner = runCommand,
     private readonly setDaemonIntent: (enabled: boolean) => void = persistDaemonIntent,
+    private readonly onboardingState: OnboardingStateStore = onboardingStateStore(),
   ) {}
 
   async status(csrfToken: string): Promise<MulticaStatus> {
@@ -136,6 +175,7 @@ export class MulticaService {
         csrfToken,
         cliInstalled: false,
         configured: false,
+        onboardingDismissed: this.onboardingState.isDismissed(),
         authenticated: false,
         daemon: 'unknown',
         runtimeReady: false,
@@ -153,6 +193,7 @@ export class MulticaService {
       ok: true,
       csrfToken,
       cliInstalled: true,
+      onboardingDismissed: this.onboardingState.isDismissed(),
       configured: values.serverUrl !== undefined && values.appUrl !== undefined && values.workspace !== undefined,
       authenticated: auth?.exitCode === 0,
       daemon: daemon?.exitCode === 0 ? parseDaemonState(daemon.stdout) : 'unknown',
@@ -164,6 +205,15 @@ export class MulticaService {
     if (values.appUrl !== undefined) result.appUrl = values.appUrl
     if (values.workspace !== undefined) result.workspace = values.workspace
     return result
+  }
+
+  dismissOnboarding(): DismissOnboardingResult {
+    try {
+      this.onboardingState.dismiss()
+    } catch {
+      throw new ServiceError('onboarding_failed', '保存稍后配置状态失败，请重试')
+    }
+    return { ok: true, onboardingDismissed: true }
   }
 
   async configure(request: ConfigureRequest): Promise<ConfigureResult> {
@@ -292,6 +342,7 @@ export class MulticaService {
 }
 
 export const serviceInternals = {
+  onboardingStateStore,
   parseConfiguredValues,
   parseDaemonState,
   profileReady,

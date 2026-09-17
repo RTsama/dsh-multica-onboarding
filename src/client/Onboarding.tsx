@@ -19,18 +19,18 @@ export function MulticaOnboarding({ complete }: OnboardingProps): ReactNode {
   }, [complete])
 
   useEffect(() => {
-    if (state.status?.configured === true && state.status.authenticated) finish()
-  }, [finish, state.status?.authenticated, state.status?.configured])
+    if (state.status?.onboardingDismissed === true || (state.status?.configured === true && state.status.authenticated)) finish()
+  }, [finish, state.status?.authenticated, state.status?.configured, state.status?.onboardingDismissed])
 
   useEffect(() => {
     const root = document.getElementById('root')
-    if (root === null || state.loading || state.status?.authenticated === true) return
+    if (root === null || state.loading || state.status?.authenticated === true || state.status?.onboardingDismissed === true) return
     const previous = root.inert
     root.inert = true
     return () => { root.inert = previous }
-  }, [state.loading, state.status?.authenticated])
+  }, [state.loading, state.status?.authenticated, state.status?.onboardingDismissed])
 
-  if (state.loading || (state.status?.configured === true && state.status.authenticated)) return null
+  if (state.loading || state.status?.onboardingDismissed === true || (state.status?.configured === true && state.status.authenticated)) return null
 
   return createPortal(
     <div className="multica-onboarding-overlay">
@@ -50,7 +50,9 @@ export function MulticaOnboarding({ complete }: OnboardingProps): ReactNode {
             return saved
           }}
           secondary={
-            <button className="multica-button multica-button--secondary" type="button" disabled={state.saving} onClick={finish}>
+            <button className="multica-button multica-button--secondary" type="button" disabled={state.saving} onClick={async () => {
+              if (await state.dismiss()) finish()
+            }}>
               稍后配置
             </button>
           }

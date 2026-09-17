@@ -17,13 +17,14 @@ DSH 的 Multica 首次引导和设置插件。它在 Web UI 中引导用户输�
 
 插件同时注册两个 DSH UI 插槽：
 
-- `settings.onboarding`：未登录时显示首次连接弹窗；已配置并登录时自动完成。
+- `settings.onboarding`：未登录时显示首次连接弹窗；已配置并登录时自动完成。点击“稍后配置”后会把非敏感的跳过状态持久化到 `~/.multica/nevis-dsh-onboarding.json`，刷新或升级后不再重复弹窗。
 - `settings.section`：在设置面板增加 `Multica` 页面，查看状态或重新登录。
 
 Host 端注册：
 
 - `GET /api/dsh-multica/status`
 - `POST /api/dsh-multica/configure`
+- `POST /api/dsh-multica/onboarding/dismiss`
 
 ## 安全约束
 

@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { CONFIGURE_PATH, STATUS_PATH } from './contracts.js'
+import { CONFIGURE_PATH, DISMISS_ONBOARDING_PATH, STATUS_PATH } from './contracts.js'
 import { createHandlers } from './host/http.js'
 
 export const name = 'dsh-multica-onboarding'
@@ -29,7 +29,13 @@ export function apply(ctx: HostContext): void {
       path: CONFIGURE_PATH,
       handler: handlers.configure,
     })
+    const disposeDismissOnboarding = ctx.webServer.register({
+      kind: 'exact',
+      path: DISMISS_ONBOARDING_PATH,
+      handler: handlers.dismissOnboarding,
+    })
     return () => {
+      disposeDismissOnboarding()
       disposeConfigure()
       disposeStatus()
     }

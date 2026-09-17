@@ -1,6 +1,15 @@
-import { describe, expect, it, vi } from 'vitest'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CommandResult, CommandSpec } from '../src/host/cli.js'
-import { DSH_BIN, MULTICA_BIN, MulticaService } from '../src/host/service.js'
+import { DSH_BIN, MULTICA_BIN, MulticaService, serviceInternals } from '../src/host/service.js'
+
+const temporaryDirectories: string[] = []
+
+afterEach(() => {
+  for (const directory of temporaryDirectories.splice(0)) rmSync(directory, { force: true, recursive: true })
+})
 
 function result(stdout = '', exitCode = 0): CommandResult {
   return { stdout, stderr: '', exitCode }
@@ -24,6 +33,7 @@ describe('MulticaService', () => {
       cliInstalled: true,
       cliVersion: '0.4.34',
       configured: true,
+      onboardingDismissed: false,
       serverUrl: 'https://multica.nevis.sina.com.cn',
       appUrl: 'https://multica.nevis.sina.com.cn',
       workspace: 'nevis-team',
@@ -32,6 +42,23 @@ describe('MulticaService', () => {
       runtimeReady: true,
     })
     expect(JSON.stringify(status)).not.toContain('employee')
+  })
+
+  it('persists a versioned onboarding dismissal and tolerates missing or invalid legacy state', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-multica-onboarding-'))
+    temporaryDirectories.push(directory)
+    const path = join(directory, '.multica', 'nevis-dsh-onboarding.json')
+    const store = serviceInternals.onboardingStateStore(path)
+    const run = vi.fn(async () => result('', 1))
+    const service = new MulticaService(run, vi.fn(), store)
+
+    expect((await service.status('csrf')).onboardingDismissed).toBe(false)
+    service.dismissOnboarding()
+    expect((await service.status('csrf')).onboardingDismissed).toBe(true)
+    expect(JSON.parse(readFileSync(path, 'utf8'))).toMatchObject({ version: 1 })
+
+    writeFileSync(path, '{not-json', 'utf8')
+    expect((await service.status('csrf')).onboardingDismissed).toBe(false)
   })
 
   it('passes token only over stdin and starts a stopped daemon', async () => {

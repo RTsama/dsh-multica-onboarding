@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { configure, getStatus } from './api.js'
+import { configure, dismissOnboarding, getStatus } from './api.js'
 import type { ConfigureRequest, MulticaStatus } from '../contracts.js'
 
 interface MulticaState {
@@ -10,6 +10,7 @@ interface MulticaState {
   success?: string
   refresh(): Promise<void>
   save(request: ConfigureRequest): Promise<boolean>
+  dismiss(): Promise<boolean>
   clearMessages(): void
 }
 
@@ -69,12 +70,32 @@ export function useMultica(): MulticaState {
     }
   }, [status])
 
+  const dismiss = useCallback(async (): Promise<boolean> => {
+    if (status === undefined) {
+      setError('状态尚未加载，请稍后重试')
+      return false
+    }
+    setSaving(true)
+    setError(undefined)
+    try {
+      await dismissOnboarding(status.csrfToken)
+      if (!mounted.current) return false
+      setStatus({ ...status, onboardingDismissed: true })
+      return true
+    } catch (caught) {
+      if (mounted.current) setError(caught instanceof Error ? caught.message : '保存稍后配置状态失败')
+      return false
+    } finally {
+      if (mounted.current) setSaving(false)
+    }
+  }, [status])
+
   const clearMessages = useCallback(() => {
     setError(undefined)
     setSuccess(undefined)
   }, [])
 
-  const result: MulticaState = { loading, saving, refresh, save, clearMessages }
+  const result: MulticaState = { loading, saving, refresh, save, dismiss, clearMessages }
   if (status !== undefined) result.status = status
   if (error !== undefined) result.error = error
   if (success !== undefined) result.success = success

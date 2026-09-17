@@ -14,6 +14,7 @@ async function serve(service: MulticaService): Promise<string> {
   const handlers = createHandlers({ service, csrfToken: 'csrf-test-token' })
   const server = createServer((req, res) => {
     if (req.url === '/status') void handlers.status(req, res)
+    else if (req.url === '/dismiss') void handlers.dismissOnboarding(req, res)
     else void handlers.configure(req, res)
   })
   servers.push(server)
@@ -28,6 +29,7 @@ function fakeService(): MulticaService {
       csrfToken,
       cliInstalled: true,
       configured: false,
+      onboardingDismissed: false,
       authenticated: false,
       daemon: 'stopped' as const,
       runtimeReady: true,
@@ -39,6 +41,7 @@ function fakeService(): MulticaService {
       daemon: 'running' as const,
       runtimeReady: true,
     })),
+    dismissOnboarding: vi.fn(() => ({ ok: true as const, onboardingDismissed: true as const })),
   } as unknown as MulticaService
 }
 
@@ -98,5 +101,18 @@ describe('HTTP handlers', () => {
       startDaemon: true,
     })
     expect(body).not.toContain(token)
+  })
+
+  it('persists onboarding dismissal only with a valid CSRF token', async () => {
+    const service = fakeService()
+    const base = await serve(service)
+    expect((await fetch(`${base}/dismiss`, { method: 'POST' })).status).toBe(403)
+    const response = await fetch(`${base}/dismiss`, {
+      method: 'POST',
+      headers: { 'x-dsh-multica-csrf': 'csrf-test-token' },
+    })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true, onboardingDismissed: true })
+    expect(service.dismissOnboarding).toHaveBeenCalledOnce()
   })
 })

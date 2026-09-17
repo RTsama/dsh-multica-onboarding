@@ -55,6 +55,7 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
 export interface HandlerSet {
   status: (req: IncomingMessage, res: ServerResponse) => Promise<void>
   configure: (req: IncomingMessage, res: ServerResponse) => Promise<void>
+  dismissOnboarding: (req: IncomingMessage, res: ServerResponse) => Promise<void>
 }
 
 export function createHandlers(options: {
@@ -114,6 +115,27 @@ export function createHandlers(options: {
           return
         }
         error(res, 500, 'internal_error', '配置 Multica 时发生内部错误')
+      }
+    },
+
+    async dismissOnboarding(req, res) {
+      if (req.method !== 'POST') {
+        res.setHeader('allow', 'POST')
+        error(res, 405, 'method_not_allowed', '仅支持 POST 请求')
+        return
+      }
+      if (!sameToken(firstHeader(req, 'x-dsh-multica-csrf'), csrfToken)) {
+        error(res, 403, 'invalid_csrf', '页面已失效，请刷新后重试')
+        return
+      }
+      try {
+        json(res, 200, service.dismissOnboarding())
+      } catch (caught) {
+        if (caught instanceof ServiceError) {
+          error(res, 500, caught.code, caught.message)
+          return
+        }
+        error(res, 500, 'internal_error', '保存稍后配置状态时发生内部错误')
       }
     },
   }

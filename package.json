@@ -1,6 +1,6 @@
 {
   "name": "dsh-multica-onboarding",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Secure Multica onboarding and settings UI for DeepSeek Harness",
   "private": true,
   "license": "UNLICENSED",

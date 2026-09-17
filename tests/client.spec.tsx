@@ -10,11 +10,13 @@ import { styles } from '../src/client/styles.js'
 const mocks = vi.hoisted(() => ({
   getStatus: vi.fn(),
   configure: vi.fn(),
+  dismissOnboarding: vi.fn(),
 }))
 
 vi.mock('../src/client/api.js', () => ({
   getStatus: mocks.getStatus,
   configure: mocks.configure,
+  dismissOnboarding: mocks.dismissOnboarding,
 }))
 
 function status(overrides: Partial<MulticaStatus> = {}): MulticaStatus {
@@ -24,6 +26,7 @@ function status(overrides: Partial<MulticaStatus> = {}): MulticaStatus {
     cliInstalled: true,
     cliVersion: '0.4.34',
     configured: false,
+    onboardingDismissed: false,
     authenticated: false,
     daemon: 'stopped',
     runtimeReady: true,
@@ -35,6 +38,7 @@ beforeEach(() => {
   document.body.innerHTML = '<div id="root"></div><div id="test-host"></div>'
   mocks.getStatus.mockReset()
   mocks.configure.mockReset()
+  mocks.dismissOnboarding.mockReset()
 })
 
 afterEach(() => { cleanup() })
@@ -76,6 +80,30 @@ describe('Multica client UI', () => {
       container: document.getElementById('test-host')!,
     })
     await waitFor(() => { expect(complete).toHaveBeenCalledOnce() })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('does not reopen a previously dismissed onboarding and persists a new dismissal', async () => {
+    mocks.getStatus.mockResolvedValueOnce(status({ onboardingDismissed: true }))
+    const alreadyComplete = vi.fn()
+    const first = render(<MulticaOnboarding stepId="multica" complete={alreadyComplete} openSection={vi.fn()} />, {
+      container: document.getElementById('test-host')!,
+    })
+    await waitFor(() => { expect(alreadyComplete).toHaveBeenCalledOnce() })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    first.unmount()
+
+    const nextHost = document.createElement('div')
+    document.body.append(nextHost)
+    mocks.getStatus.mockResolvedValueOnce(status())
+    mocks.dismissOnboarding.mockResolvedValue({ ok: true, onboardingDismissed: true })
+    const complete = vi.fn()
+    render(<MulticaOnboarding stepId="multica" complete={complete} openSection={vi.fn()} />, {
+      container: nextHost,
+    })
+    fireEvent.click(await screen.findByRole('button', { name: '稍后配置' }))
+    await waitFor(() => { expect(complete).toHaveBeenCalledOnce() })
+    expect(mocks.dismissOnboarding).toHaveBeenCalledWith('csrf-ui')
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
