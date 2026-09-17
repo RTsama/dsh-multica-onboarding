@@ -73,8 +73,8 @@ describe('Multica client UI', () => {
     expect((appUrl as HTMLInputElement).value).toBe('https://app.example.internal')
   })
 
-  it('automatically completes onboarding when Multica is already authenticated', async () => {
-    mocks.getStatus.mockResolvedValue(status({ configured: true, authenticated: true }))
+  it('automatically completes onboarding when Multica is already configured even if auth health is unavailable', async () => {
+    mocks.getStatus.mockResolvedValue(status({ configured: true, authenticated: false }))
     const complete = vi.fn()
     render(<MulticaOnboarding stepId="multica" complete={complete} openSection={vi.fn()} />, {
       container: document.getElementById('test-host')!,

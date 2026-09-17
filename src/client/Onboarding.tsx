@@ -19,18 +19,18 @@ export function MulticaOnboarding({ complete }: OnboardingProps): ReactNode {
   }, [complete])
 
   useEffect(() => {
-    if (state.status?.onboardingDismissed === true || (state.status?.configured === true && state.status.authenticated)) finish()
-  }, [finish, state.status?.authenticated, state.status?.configured, state.status?.onboardingDismissed])
+    if (state.status?.onboardingDismissed === true || state.status?.configured === true) finish()
+  }, [finish, state.status?.configured, state.status?.onboardingDismissed])
 
   useEffect(() => {
     const root = document.getElementById('root')
-    if (root === null || state.loading || state.status?.authenticated === true || state.status?.onboardingDismissed === true) return
+    if (root === null || state.loading || state.status?.configured === true || state.status?.onboardingDismissed === true) return
     const previous = root.inert
     root.inert = true
     return () => { root.inert = previous }
-  }, [state.loading, state.status?.authenticated, state.status?.onboardingDismissed])
+  }, [state.loading, state.status?.configured, state.status?.onboardingDismissed])
 
-  if (state.loading || state.status?.onboardingDismissed === true || (state.status?.configured === true && state.status.authenticated)) return null
+  if (state.loading || state.status?.onboardingDismissed === true || state.status?.configured === true) return null
 
   return createPortal(
     <div className="multica-onboarding-overlay">
